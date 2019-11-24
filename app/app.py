@@ -139,15 +139,3 @@ if __name__ == "__main__":
 
     NBResultLabels = [NBayesClassifier.classify(train_and_classify.tweetMatching(tweet[0])) for tweet in testSet]
 
-    # get the majority vote
-    print("Overall Positive Sentiment")
-    print("Positive Sentiment Percentage = " + str(
-        100 * NBResultLabels.count('positive') / len(NBResultLabels)) + "%")
-
-    print("Overall Negative Sentiment")
-    print("Negative Sentiment Percentage = " + str(
-        100 * NBResultLabels.count('negative') / len(NBResultLabels)) + "%")
-
-    print("Neutral Sentiment Percentage = " + str(
-        100 * NBResultLabels.count('neutral') / len(NBResultLabels)) + "%")
-
