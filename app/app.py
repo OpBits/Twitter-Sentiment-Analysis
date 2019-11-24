@@ -44,16 +44,18 @@ class setUpTweets:
     def __init__(self):
         self._stopwords = set(stopwords.words('english') + list(punctuation) + ['AT_USER', 'URL'])
 
-    def process(self, tweetsList):
+    def process(self, tweetsList, testSet):
         postProcessTweets = [];
-        for tweet in tweetsList:
-            postProcessTweets.append((self.__process(tweet.get("text")), tweet.get("label")))
+        if(testSet):
+            for tweet in tweetsList:
+                postProcessTweets.append((self.__process(tweet.get("text")), tweet.get("label")))
+        else:
+            for tweet in tweetsList:
+                postProcessTweets.append((self.__process(tweet[1]), tweet[2]))
         return postProcessTweets
 
     #removing words that that will now have an affect on the sentiment analysis calculation
     def __process(self, tweet):
-        print(tweet)
-        print("hello")
         tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+))', 'URL', tweet)  # remove URL
         tweet = tweet.lower()  # convert to lower case
         tweet = re.sub(r'#([^\s]+)', r'\1', tweet)  # delete hashtag
@@ -112,7 +114,7 @@ class trainAndClassify:
     def tweetMatching(self, tweet):
         tweet_partition = set(tweet)
         features = {}
-        for word in self.word_frequency_pairing:
+        for word in word_frequency_pairing:
             features['contains(%s)' % word] = (word in tweet_partition)
         return features
 
@@ -124,17 +126,28 @@ if __name__ == "__main__":
 
     retrievedTweets = tweet_retrival.retrieveTweets(input("Enter a company name: "))
     trainingData = train_and_classify.getTrainingSet(retrievedTweetsFile)
-    trainingData = train_and_classify.createTrainingSet(characterizationFile,retrievedTweetsFile)
+    #trainingData = train_and_classify.createTrainingSet(characterizationFile,retrievedTweetsFile)      #creates traning set(only need to run once)
 
-    print(trainingData)
     tweetProcessor = setUpTweets()
-    preprocessedTrainingSet = tweetProcessor.process(trainingData)
-    preprocessedTestSet = tweetProcessor.process(retrievedTweets)
-    print(preprocessedTestSet)
+    trainingSet = tweetProcessor.process(trainingData, False)
+    testSet = tweetProcessor.process(retrievedTweets, True)
 
-    #word_frequency_pairing = buildVocab(preprocessedTrainingSet)
-    #trainingFeatures = nltk.classify.apply_features(tweetMatching, preprocessedTrainingSet)
+    word_frequency_pairing = train_and_classify.buildVocab(trainingSet)
+    trainingFeatures = nltk.classify.apply_features(train_and_classify.tweetMatching, trainingSet)
 
-   # NBayesClassifier = nltk.NaiveBayesClassifier.train(trainingFeatures)
+    NBayesClassifier = nltk.NaiveBayesClassifier.train(trainingFeatures)
 
-    #NBResultLabels = [NBayesClassifier.classify(tweetMatching(tweet[0])) for tweet in preprocessedTestSet]
+    NBResultLabels = [NBayesClassifier.classify(train_and_classify.tweetMatching(tweet[0])) for tweet in testSet]
+
+    # get the majority vote
+    print("Overall Positive Sentiment")
+    print("Positive Sentiment Percentage = " + str(
+        100 * NBResultLabels.count('positive') / len(NBResultLabels)) + "%")
+
+    print("Overall Negative Sentiment")
+    print("Negative Sentiment Percentage = " + str(
+        100 * NBResultLabels.count('negative') / len(NBResultLabels)) + "%")
+
+    print("Neutral Sentiment Percentage = " + str(
+        100 * NBResultLabels.count('neutral') / len(NBResultLabels)) + "%")
+
